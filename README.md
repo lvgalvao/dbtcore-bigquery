@@ -1,5 +1,226 @@
 # dbt-core & bigqueyr
 
+### Configuração do Projeto
+
+### 1. Clonar o Repositório
+
+Primeiro, clone o repositório do projeto:
+
+```bash
+git clone https://github.com/lvgalvao/dbtcore-bigquery.git
+cd dbtcore-bigquery
+```
+
+### 2. Inicializar o Poetry
+
+Em seguida, inicialize o Poetry e instale as dependências:
+
+```bash
+poetry init
+poetry install
+```
+
+### 3. Instalar Dependências Adicionais
+
+Adicione o dbt Core, dbt-bigquery, pre-commit e sqlfluff ao ambiente do Poetry:
+
+```bash
+poetry add dbt-core dbt-bigquery
+poetry add --dev pre-commit sqlfluff
+```
+### Configurando o Projeto com Pre-commit e SQLFluff
+
+Neste projeto, vamos usar **pre-commit** para garantir que nosso código SQL e configuração estejam em conformidade com as melhores práticas antes de cada commit. Também usaremos **SQLFluff** para aplicar regras de formatação específicas ao nosso código SQL.
+
+### Passos para Configuração
+
+1. **Instalar Pre-commit e SQLFluff**
+2. **Configurar Pre-commit**
+3. **Configurar SQLFluff**
+
+### 1. Instalar Pre-commit e SQLFluff
+
+Primeiro, instale as ferramentas necessárias usando `poetry`:
+
+```bash
+poetry add --group dev pre-commit sqlfluff
+```
+
+### 2. Configurar Pre-commit
+
+Crie um arquivo `.pre-commit-config.yaml` no diretório raiz do seu projeto com o seguinte conteúdo:
+
+```yaml
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: requirements-txt-fixer
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.3.4
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+  - repo: https://github.com/sqlfluff/sqlfluff
+    rev: 0.11.2
+    hooks:
+      - id: sqlfluff-lint
+      - id: sqlfluff-fix
+```
+
+Em seguida, instale os hooks do pre-commit:
+
+```bash
+pre-commit install
+```
+
+### 3. Configurar SQLFluff
+
+Crie um arquivo `.sqlfluff` no diretório raiz do seu projeto com o seguinte conteúdo:
+
+```ini
+[sqlfluff]
+templater = dbt
+dialect = bigquery
+runaway_limit = 10
+max_line_length = 80
+indent_unit = space
+
+[sqlfluff:templater:dbt]
+profiles_dir = .
+
+[sqlfluff:indentation]
+tab_space_size = 4
+
+[sqlfluff:layout:type:comma]
+spacing_before = touch
+line_position = trailing
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = lower
+
+[sqlfluff:rules:aliasing.table]
+aliasing = explicit
+
+[sqlfluff:rules:aliasing.column]
+aliasing = explicit
+
+[sqlfluff:rules:aliasing.expression]
+allow_scalar = False
+
+[sqlfluff:rules:capitalisation.identifiers]
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.functions]
+capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.literals]
+capitalisation_policy = lower
+
+[sqlfluff:rules:ambiguous.column_references]  # Number in group by
+group_by_and_order_by_style = implicit
+```
+
+### 4. Atualizar o README
+
+Atualize o arquivo `README.md` do seu projeto para incluir as instruções de configuração do projeto.
+
+#### Exemplo de Atualização do README
+
+```markdown
+# jaffle-shop
+
+Este é o projeto `jaffle-shop` configurado para usar dbt Core e BigQuery. Além disso, estamos utilizando o Pre-commit e SQLFluff para garantir a qualidade do código.
+
+## Configuração do Projeto
+
+### 1. Instalar Dependências
+
+Instale as dependências necessárias usando `poetry`:
+
+```bash
+poetry install
+```
+
+### 2. Configurar Pre-commit
+
+Instale os hooks do pre-commit:
+
+```bash
+pre-commit install
+```
+
+### 3. Configurar SQLFluff
+
+Certifique-se de que o arquivo `.sqlfluff` está no diretório raiz do projeto com o seguinte conteúdo:
+
+```ini
+[sqlfluff]
+templater = dbt
+dialect = bigquery
+runaway_limit = 10
+max_line_length = 80
+indent_unit = space
+
+[sqlfluff:templater:dbt]
+profiles_dir = .
+
+[sqlfluff:indentation]
+tab_space_size = 4
+
+[sqlfluff:layout:type:comma]
+spacing_before = touch
+line_position = trailing
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = lower
+
+[sqlfluff:rules:aliasing.table]
+aliasing = explicit
+
+[sqlfluff:rules:aliasing.column]
+aliasing = explicit
+
+[sqlfluff:rules:aliasing.expression]
+allow_scalar = False
+
+[sqlfluff:rules:capitalisation.identifiers]
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.functions]
+capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.literals]
+capitalisation_policy = lower
+
+[sqlfluff:rules:ambiguous.column_references]  # Number in group by
+group_by_and_order_by_style = implicit
+```
+
+### 4. Executar Seeds e Modelos
+
+Carregue os dados das seeds e execute os modelos:
+
+```bash
+dbt seed
+dbt run
+```
+
+### 5. Verificar e Corrigir o Código
+
+Para verificar e corrigir o código SQL, utilize os comandos do SQLFluff:
+
+```bash
+sqlfluff lint models/
+sqlfluff fix models/
+```
+
+Com esses passos, você terá configurado o projeto `jaffle-shop` com dbt Core e BigQuery, utilizando Pre-commit e SQLFluff para garantir a qualidade e consistência do código.
+
 ## Quickstart com dbt Core e BigQuery
 
 ### Resumo dos Passos
