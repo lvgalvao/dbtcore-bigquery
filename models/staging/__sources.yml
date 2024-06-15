@@ -3,22 +3,26 @@ version: 2
 sources:
   - name: ecom
     schema: raw
-    description: E-commerce data for the Jaffle Shop
+    description: Dados de e-commerce para a Jaffle Shop
     freshness:
       warn_after:
         count: 24
         period: hour
+      error_after:
+        count: 48
+        period: hour
     tables:
       - name: raw_customers
-        description: One record per person who has purchased one or more items
+        description: Um registro por pessoa que comprou um ou mais itens
       - name: raw_orders
-        description: One record per order (consisting of one or more order items)
+        description: Um registro por pedido (consistindo em um ou mais itens do pedido)
         loaded_at_field: ordered_at
       - name: raw_items
-        description: Items included in an order
+        description: Itens incluídos em um pedido
       - name: raw_stores
         loaded_at_field: opened_at
+        description: Registro de cada loja com a data de abertura
       - name: raw_products
-        description: One record per SKU for items sold in stores
+        description: Um registro por SKU para itens vendidos nas lojas
       - name: raw_supplies
-        description: One record per supply per SKU of items sold in stores
+        description: Um registro por suprimento por SKU de itens vendidos nas lojas

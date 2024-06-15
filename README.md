@@ -1,6 +1,17 @@
 # dbt-core & bigqueyr
 
-### Configuração do Projeto
+[Excalidraw](https://link.excalidraw.com/l/8pvW6zbNUnD/394XJa9Ha8M)
+
+Objetivos:
+
+1) Configurar bigquery
+2) Boas práticas com sqlfluff e pre-commit
+3) Ingerindo dados raw com freshness
+4) Staging
+5) Revisitando staging para aplicar macros
+6) Revisitando raw para aplicar macro de schema
+
+## Configuração do Projeto
 
 ### 1. Clonar o Repositório
 
@@ -391,3 +402,453 @@ dbt debug
 ```
 
 Se tudo estiver configurado corretamente, você verá uma mensagem indicando que a conexão com o BigQuery foi bem-sucedida.
+
+## Raw
+
+### Conceito de `raw` no dbt
+
+No contexto do dbt (data build tool), `raw` refere-se aos dados brutos que são carregados diretamente de fontes externas, como sistemas de produção, arquivos CSV, APIs, entre outros. Estes dados não foram processados ou transformados e são mantidos em seu estado original.
+
+#### Importância dos Dados Brutos (`raw`)
+
+1. **Fonte da Verdade**: Dados brutos servem como a fonte da verdade, capturando exatamente o que foi coletado no ponto de origem.
+2. **Auditoria e Rastreamento**: Manter os dados em seu estado original permite auditorias e rastreamentos para verificar como os dados foram transformados ao longo do pipeline.
+3. **Transformações Reprodutíveis**: Ter uma camada de dados brutos facilita a criação de transformações reprodutíveis e verificáveis.
+
+#### Onde Inserir Dados Brutos no dbt
+
+No dbt, os dados brutos são geralmente definidos como `sources` ou carregados como `seeds`.
+
+1. **Sources**:
+   - Definidos no arquivo `sources.yml`.
+   - Usados para referenciar tabelas que já existem no banco de dados.
+   - Exemplos de configuração de `sources`:
+     ```yaml
+     version: 2
+
+     sources:
+       - name: ecom
+         schema: raw
+         description: Dados de e-commerce para a Jaffle Shop
+         tables:
+           - name: raw_customers
+             description: Um registro por pessoa que comprou um ou mais itens
+           - name: raw_orders
+             description: Um registro por pedido (consistindo em um ou mais itens do pedido)
+           - name: raw_items
+             description: Itens incluídos em um pedido
+           - name: raw_stores
+             description: Registro de cada loja com a data de abertura
+           - name: raw_products
+             description: Um registro por SKU para itens vendidos nas lojas
+           - name: raw_supplies
+             description: Um registro por suprimento por SKU de itens vendidos nas lojas
+     ```
+
+2. **Seeds**:
+   - Arquivos CSV que são carregados diretamente no banco de dados como tabelas.
+   - Definidos na pasta `seeds` do projeto dbt.
+   - Exemplos de arquivos `CSV`:
+     - `raw_customers.csv`
+     - `raw_orders.csv`
+     - `raw_items.csv`
+     - `raw_stores.csv`
+     - `raw_products.csv`
+     - `raw_supplies.csv`
+   - Comando para carregar seeds:
+     ```bash
+     dbt seed
+     ```
+
+#### Cuidados ao Inserir Dados Brutos
+
+1. **Integridade dos Dados**:
+   - Verifique a qualidade e integridade dos dados antes de carregá-los.
+   - Certifique-se de que os dados brutos não contêm registros duplicados ou inválidos.
+
+2. **Documentação**:
+   - Documente todas as tabelas de dados brutos no arquivo `sources.yml`.
+   - Inclua descrições claras e detalhadas para cada tabela e coluna.
+
+3. **Consistência de Formato**:
+   - Mantenha um formato consistente nos arquivos CSV.
+   - Certifique-se de que todos os campos estão corretamente delimitados e escapados.
+
+4. **Atualização e Carregamento**:
+   - Estabeleça um processo regular de atualização para os dados brutos.
+   - Use `dbt seed` para carregar novos dados ou atualizar os existentes.
+
+5. **Segurança e Acesso**:
+   - Restrinja o acesso aos dados brutos para evitar modificações não autorizadas.
+   - Mantenha backups regulares dos arquivos CSV e das tabelas de dados brutos.
+
+#### Exemplo de Carregamento de Seeds
+
+1. **Estrutura do Projeto dbt**:
+   ```
+   ├── models
+   ├── seeds
+   │   ├── raw_customers.csv
+   │   ├── raw_orders.csv
+   │   ├── raw_items.csv
+   │   ├── raw_stores.csv
+   │   ├── raw_products.csv
+   │   └── raw_supplies.csv
+   └── dbt_project.yml
+   ```
+
+2. **Arquivo CSV (`raw_customers.csv`)**:
+   ```csv
+   id,name,email
+   1,John Doe,john@example.com
+   2,Jane Smith,jane@example.com
+   ```
+
+3. **Comando para Carregar os Seeds**:
+   ```bash
+   dbt seed
+   ```
+
+### Conclusão
+
+Os dados brutos (`raw`) no dbt são fundamentais para garantir que as transformações de dados sejam reprodutíveis e auditáveis. Eles servem como a base para todas as operações subsequentes de transformação e análise de dados. Manter uma boa prática de carregamento e documentação de dados brutos é essencial para um pipeline de dados robusto e confiável.
+
+## Conceito de Freshness no dbt
+
+## Staging
+
+### Conceito de `staging` no dbt
+
+No contexto do dbt (data build tool), `staging` refere-se a uma camada intermediária onde os dados brutos (`raw`) são transformados e preparados para análises mais detalhadas ou para serem carregados em modelos mais complexos. Esta camada é crucial para limpar, padronizar e estruturar os dados antes de serem utilizados em modelos analíticos ou dashboards.
+
+#### Importância dos Dados de `staging`
+
+1. **Limpeza e Padronização**: A camada de `staging` é onde você limpa e padroniza os dados, removendo inconsistências e preparando-os para análises mais detalhadas.
+2. **Transformações Intermediárias**: Permite aplicar transformações intermediárias que não alteram os dados brutos, mas os tornam mais utilizáveis.
+3. **Facilidade de Uso**: Estrutura os dados de maneira que sejam mais fáceis de serem consultados e utilizados por analistas e cientistas de dados.
+4. **Modularidade e Reuso**: Cria uma camada reutilizável de dados transformados que pode ser usada por vários modelos analíticos.
+
+#### Onde Inserir os Dados de `staging` no dbt
+
+No dbt, os dados de `staging` são geralmente definidos como modelos dentro da estrutura de diretórios do projeto.
+
+1. **Modelos de `staging`**:
+   - Definidos na pasta `models/staging` do projeto dbt.
+   - Utilizam os dados brutos (`raw`) como fonte e aplicam transformações intermediárias.
+
+#### Estrutura de Diretório
+
+A estrutura típica de diretórios para modelos de `staging` pode ser assim:
+
+```
+├── models
+│   ├── staging
+│   │   ├── stg_customers.sql
+│   │   ├── stg_orders.sql
+│   │   ├── stg_order_items.sql
+│   │   ├── stg_products.sql
+│   │   ├── stg_stores.sql
+│   │   └── stg_supplies.sql
+```
+
+#### Cuidados ao Criar Modelos de `staging`
+
+1. **Documentação**:
+   - Documente todas as transformações aplicadas nos modelos de `staging`.
+   - Utilize arquivos YAML para descrever as tabelas e colunas transformadas.
+
+2. **Nomenclatura Consistente**:
+   - Use uma convenção de nomenclatura clara e consistente para todos os modelos de `staging`.
+   - Prefixe os modelos com `stg_` para indicar que são modelos de `staging`.
+
+3. **Manutenção de Integridade**:
+   - Garanta que as transformações não alterem a integridade dos dados.
+   - Preserve a chave primária e as relações importantes dos dados brutos.
+
+4. **Performance**:
+   - Otimize as consultas SQL para garantir que os modelos de `staging` sejam executados de maneira eficiente.
+
+#### Exemplo de Modelo de `staging`
+
+Aqui está um exemplo de um modelo de `staging` para `stg_customers`:
+
+```sql
+-- models/staging/stg_customers.sql
+
+with source as (
+    select * from {{ source('ecom', 'raw_customers') }}
+),
+
+renamed as (
+    select
+        id as customer_id,
+        name as customer_name
+    from source
+)
+
+select * from renamed
+```
+
+#### Documentação em YAML
+
+Adicione uma documentação detalhada para os modelos de `staging` usando arquivos YAML:
+
+```yaml
+version: 2
+
+models:
+  - name: stg_customers
+    description: "Dados de clientes transformados e padronizados"
+    columns:
+      - name: customer_id
+        description: "Identificador único do cliente"
+      - name: customer_name
+        description: "Nome do cliente"
+
+  - name: stg_orders
+    description: "Dados de pedidos transformados e padronizados"
+    columns:
+      - name: order_id
+        description: "Identificador único do pedido"
+      - name: location_id
+        description: "Identificador da localização"
+      - name: customer_id
+        description: "Identificador do cliente"
+      - name: subtotal_cents
+        description: "Subtotal em centavos"
+      - name: tax_paid_cents
+        description: "Imposto pago em centavos"
+      - name: order_total_cents
+        description: "Total do pedido em centavos"
+      - name: subtotal
+        description: "Subtotal em dólares"
+      - name: tax_paid
+        description: "Imposto pago em dólares"
+      - name: order_total
+        description: "Total do pedido em dólares"
+      - name: ordered_at
+        description: "Data do pedido truncada para dia"
+
+  - name: stg_order_items
+    description: "Dados de itens de pedidos transformados e padronizados"
+    columns:
+      - name: order_item_id
+        description: "Identificador único do item do pedido"
+      - name: order_id
+        description: "Identificador do pedido"
+      - name: product_id
+        description: "Identificador do produto"
+
+  - name: stg_products
+    description: "Dados de produtos transformados e padronizados"
+    columns:
+      - name: product_id
+        description: "Identificador único do produto"
+      - name: product_name
+        description: "Nome do produto"
+      - name: product_type
+        description: "Tipo do produto"
+      - name: product_description
+        description: "Descrição do produto"
+      - name: product_price
+        description: "Preço do produto em dólares"
+      - name: is_food_item
+        description: "Indica se o produto é um item alimentício"
+      - name: is_drink_item
+        description: "Indica se o produto é uma bebida"
+
+  - name: stg_stores
+    description: "Dados de lojas transformados e padronizados"
+    columns:
+      - name: location_id
+        description: "Identificador único da loja"
+      - name: location_name
+        description: "Nome da loja"
+      - name: tax_rate
+        description: "Taxa de imposto da loja"
+      - name: opened_date
+        description: "Data de abertura da loja truncada para dia"
+
+  - name: stg_supplies
+    description: "Dados de suprimentos transformados e padronizados"
+    columns:
+      - name: supply_uuid
+        description: "Identificador único do suprimento"
+      - name: supply_id
+        description: "Identificador do suprimento"
+      - name: product_id
+        description: "Identificador do produto"
+      - name: supply_name
+        description: "Nome do suprimento"
+      - name: supply_cost
+        description: "Custo do suprimento em dólares"
+      - name: is_perishable_supply
+        description: "Indica se o suprimento é perecível"
+```
+
+### Conclusão
+
+Os modelos de `staging` no dbt desempenham um papel crucial na preparação dos dados brutos para análises mais complexas. Eles permitem a limpeza, padronização e transformação intermediária dos dados, facilitando o uso e a análise. Seguir boas práticas na criação e documentação desses modelos é essencial para garantir a integridade, performance e reutilização dos dados transformados.
+
+A configuração de `freshness` no dbt (data build tool) é uma funcionalidade que permite monitorar a atualidade dos dados nas tabelas de origem, garantindo que você esteja sempre trabalhando com dados atualizados e confiáveis.
+
+#### Componentes Principais
+
+1. **`freshness`**:
+   - Seção que define a verificação de atualidade dos dados.
+
+2. **`loaded_at_field`**:
+   - Coluna na tabela de origem que contém timestamps indicando quando os dados foram inseridos ou atualizados.
+
+3. **`warn_after`**:
+   - Define o tempo após o qual o dbt emitirá um aviso se os dados não tiverem sido atualizados.
+   - **Exemplo**:
+     ```yaml
+     warn_after:
+       count: 24
+       period: hour
+     ```
+   - Isso significa que um aviso será emitido se os dados não forem atualizados em 24 horas.
+
+4. **`error_after`**:
+   - Define o tempo após o qual o dbt emitirá um erro se os dados não tiverem sido atualizados.
+   - **Exemplo**:
+     ```yaml
+     error_after:
+       count: 48
+       period: hour
+     ```
+   - Isso significa que um erro será emitido se os dados não forem atualizados em 48 horas.
+
+#### Diferença entre `warn` e `error`
+
+- **Warn (Aviso)**:
+  - Serve como um alerta de que os dados podem estar desatualizados.
+  - O processo de execução continua, mas um aviso é emitido.
+  - Útil para monitorar dados que estão começando a ficar desatualizados.
+
+- **Error (Erro)**:
+  - Indica um problema crítico com a atualidade dos dados.
+  - Pode interromper o processo de execução, emitindo um erro.
+  - Usado para dados que são críticos e precisam estar sempre atualizados.
+
+#### Exemplo de Configuração
+
+```yaml
+version: 2
+
+sources:
+  - name: ecom
+    schema: raw
+    description: Dados de e-commerce para a Jaffle Shop
+    freshness:
+      warn_after:
+        count: 24
+        period: hour
+      error_after:
+        count: 48
+        period: hour
+    tables:
+      - name: raw_customers
+        description: Um registro por pessoa que comprou um ou mais itens
+      - name: raw_orders
+        description: Um registro por pedido (consistindo em um ou mais itens do pedido)
+        loaded_at_field: ordered_at
+      - name: raw_items
+        description: Itens incluídos em um pedido
+      - name: raw_stores
+        loaded_at_field: opened_at
+        description: Registro de cada loja com a data de abertura
+      - name: raw_products
+        description: Um registro por SKU para itens vendidos nas lojas
+      - name: raw_supplies
+        description: Um registro por suprimento por SKU de itens vendidos nas lojas
+```
+
+#### Testando a Configuração de Freshness
+
+1. **Verificar Configuração**:
+   - Certifique-se de que a configuração `freshness` está definida corretamente no arquivo `sources.yml`.
+
+2. **Executar o Comando**:
+   - No terminal, navegue até o diretório do projeto dbt e execute:
+     ```bash
+     dbt source freshness
+     ```
+
+3. **Analisar a Saída**:
+   - O dbt verificará os timestamps na coluna especificada (`loaded_at_field`) e emitirá avisos ou erros com base nos tempos definidos em `warn_after` e `error_after`.
+
+#### Exemplo de Saída
+
+```plaintext
+Running with dbt=1.0.0
+Found 2 sources, 5 tables, 2 freshness checks
+
+Freshness checks for source ecom.raw_orders:
+ - loaded_at_field: ordered_at
+ - warn_after: 24 hours
+ - error_after: 48 hours
+
+Freshness results:
+ - source: ecom.raw_orders
+   status: warn (27 hours ago)
+
+Warnings:
+ - The source 'ecom.raw_orders' is 27 hours old, which exceeds the warning threshold of 24 hours.
+
+Errors:
+ - The source 'ecom.raw_orders' is 51 hours old, which exceeds the error threshold of 48 hours.
+```
+
+#### Conclusão
+
+A configuração de `freshness` no dbt é uma ferramenta poderosa para garantir que seus dados estejam atualizados, emitindo avisos e erros quando os dados excedem os limites definidos. Isso ajuda a manter a integridade das suas análises e a confiança nos seus dados.
+
+
+
+## Macros
+
+Macros são uma funcionalidade poderosa do dbt (data build tool) que permitem a reutilização de código SQL e a personalização dinâmica de comportamentos em seus modelos de dados. Eles são escritos em Jinja, uma linguagem de template para Python, e permitem a criação de trechos de código reutilizáveis que podem ser chamados em qualquer lugar do seu projeto dbt.
+
+### O que é um Macro?
+
+Um macro no dbt é uma função definida pelo usuário que pode ser utilizada para gerar ou manipular SQL de maneira programática. Eles são especialmente úteis para evitar duplicação de código, aplicar transformações consistentes e implementar lógica condicional nos seus scripts SQL.
+
+### Benefícios dos Macros
+
+1. **Reutilização de Código**: Macros permitem encapsular lógica comum em uma única definição reutilizável, reduzindo a repetição de código.
+2. **Manutenção Simplificada**: Alterações na lógica centralizada dentro de um macro são refletidas em todos os lugares onde o macro é utilizado, facilitando a manutenção.
+3. **Customização e Flexibilidade**: Macros podem usar parâmetros para gerar SQL dinamicamente, adaptando-se às necessidades específicas de diferentes modelos ou situações.
+4. **Padronização**: Garantem que operações comuns, como formatação de datas ou tratamento de valores nulos, sejam realizadas de maneira consistente em todo o projeto.
+
+### Exemplo de Uso de Macro
+
+Um exemplo clássico de uso de macro no dbt é a conversão de valores em centavos para dólares de forma consistente em diferentes modelos e bancos de dados. O macro `cents_to_dollars` mostrado anteriormente é um exemplo prático de como isso pode ser implementado:
+
+```jinja
+{% macro cents_to_dollars(column_name) %}
+    round(cast(({{ column_name }} / 100) as numeric), 2)
+{% endmacro %}
+```
+
+Este macro define como os valores em centavos devem ser convertidos para dólares, com implementações específicas para PostgreSQL e BigQuery.
+
+### Uso em um Modelo
+
+Você pode chamar este macro dentro de um modelo dbt da seguinte forma:
+
+```sql
+select
+    {{ cents_to_dollars('amount_in_cents') }} as amount_in_dollars
+from
+    {{ ref('transactions') }}
+```
+
+Neste exemplo, a coluna `amount_in_cents` será convertida para `amount_in_dollars` usando a lógica definida no macro `cents_to_dollars`.
+
+### Conclusão
+
+Macros são uma parte essencial do dbt, permitindo a criação de código SQL eficiente, reutilizável e fácil de manter. Eles ajudam a padronizar transformações de dados e a implementar lógica complexa de maneira simplificada, contribuindo para a qualidade e consistência dos seus pipelines de dados.
+
+## Refatorando dolar e schema

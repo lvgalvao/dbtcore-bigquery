@@ -16,6 +16,8 @@ test-paths: ["data-tests"]
 seed-paths: ["seeds"]
 macro-paths: ["macros"]
 snapshot-paths: ["snapshots"]
+docs-paths: ["docs"]
+
 
 clean-targets:         # directories to be removed by `dbt clean`
   - "target"
@@ -32,12 +34,14 @@ vars:
 # files using the `{{ config(...) }}` macro.
 
 seeds:
-  jaffle_shop:
+  analytics:
     +schema: raw
 
 models:
   analytics:
     staging:
+      +schema: staging  # Define o esquema para modelos de staging
       +materialized: view
     marts:
+      +schema: marts  # Define o esquema para modelos de marts
       +materialized: table

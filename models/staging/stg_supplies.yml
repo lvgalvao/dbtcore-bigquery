@@ -1,12 +1,12 @@
 models:
   - name: stg_supplies
     description: >
-      List of our supply expenses data with basic cleaning and transformation applied.
+      Lista dos dados de despesas de suprimentos com limpeza e transformação básica aplicada.
 
-      One row per supply cost, not per supply. As supply costs fluctuate they receive a new row with a new UUID. Thus there can be multiple rows per supply_id.
+      Uma linha por custo de suprimento, não por suprimento. À medida que os custos dos suprimentos flutuam, eles recebem uma nova linha com um novo UUID. Portanto, pode haver várias linhas por supply_id.
     columns:
       - name: supply_uuid
-        description: The unique key of our supplies per cost.
+        description: A chave única dos nossos suprimentos por custo.
         data_tests:
           - not_null
           - unique

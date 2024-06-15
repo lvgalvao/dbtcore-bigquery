@@ -20,8 +20,7 @@ renamed as (
         tax_rate,
 
         ---------- timestamps
-        -- Substituição manual do dbt.date_trunc
-        DATE_TRUNC(opened_at, day) as opened_date
+        {{ dbt.date_trunc('day', 'opened_at') }} as opened_date
 
     from source
 

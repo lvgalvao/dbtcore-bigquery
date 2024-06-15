@@ -11,20 +11,18 @@ renamed as (
     select
 
         ----------  ids
-        -- Substituição manual do generate_surrogate_key
+        {{ dbt_utils.generate_surrogate_key(['id', 'sku']) }} as supply_uuid,
         id as supply_id,
         sku as product_id,
-        name as supply_name,
 
         ---------- text
-        perishable as is_perishable_supply,
+        name as supply_name,
 
         ---------- numerics
-        -- Substituição manual do cents_to_dollars
-        CONCAT(id, '-', sku) as supply_uuid,
+        {{ cents_to_dollars('cost') }} as supply_cost,
 
         ---------- booleans
-        ROUND(CAST((cost / 100) as numeric), 2) as supply_cost
+        perishable as is_perishable_supply
 
     from source
 
