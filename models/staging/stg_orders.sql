@@ -1,9 +1,19 @@
+-- models/staging/stg_orders.sql
+
 with
 
-source as (
+source_2023 as (
+    select * from {{ source('ecom', 'raw_orders_2023') }}
+),
 
-    select * from {{ source('ecom', 'raw_orders') }}
+source_2024 as (
+    select * from {{ source('ecom', 'raw_orders_2024') }}
+),
 
+combined_sources as (
+    select * from source_2023
+    union all
+    select * from source_2024
 ),
 
 renamed as (
@@ -30,7 +40,7 @@ renamed as (
         -- Substituição manual do dbt.date_trunc
         date_trunc(ordered_at, day) as ordered_at
 
-    from source
+    from combined_sources
 
 )
 

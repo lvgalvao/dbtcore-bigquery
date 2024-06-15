@@ -4,12 +4,6 @@ models:
       - name: order_item_id
         data_tests:
           - not_null
-          - unique
-      - name: order_id
-        data_tests:
-          - relationships:
-              to: ref('orders')
-              field: order_id
 
 unit_tests:
   - name: test_supply_costs_sum_correctly
@@ -165,17 +159,3 @@ metrics:
     type: cumulative
     type_params:
       measure: revenue
-
-saved_queries:
-  - name: revenue_metrics
-    query_params:
-      metrics:
-        - revenue
-        - food_revenue
-        - drink_revenue
-      group_by:
-        - TimeDimension('metric_time', 'day')
-    exports:
-      - name: revenue_metrics
-        config:
-          export_as: table

@@ -2,7 +2,13 @@ with
 
 source as (
 
-    select * from {{ source('ecom', 'raw_orders') }}
+    -- Usando a macro dbt_utils.union_relations para combinar as tabelas raw_orders_2016 e raw_orders_2017
+    {{ dbt_utils.union_relations(
+        relations=[
+            source('ecom', 'raw_orders_2023'),
+            source('ecom', 'raw_orders_2024')
+        ]
+    ) }}
 
 ),
 

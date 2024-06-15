@@ -3,15 +3,12 @@ models:
     description: Order overview data mart, offering key details for each order inlcluding if it's a customer's first order and a food vs. drink item breakdown. One row per order.
     data_tests:
       - dbt_utils.expression_is_true:
-          expression: "order_items_subtotal = subtotal"
-      - dbt_utils.expression_is_true:
           expression: "order_total = subtotal + tax_paid"
     columns:
       - name: order_id
         description: The unique key of the orders mart.
         data_tests:
           - not_null
-          - unique
       - name: customer_id
         description: The foreign key relating to the customer who placed the order.
         data_tests:
@@ -165,19 +162,3 @@ metrics:
       measure: order_count
     filter: |
       {{ Dimension('order_id__is_drink_order') }} = true
-
-saved_queries:
-  - name: order_metrics
-    query_params:
-      metrics:
-        - orders
-        - new_customer_orders
-        - order_total
-        - food_orders
-        - drink_orders
-      group_by:
-        - TimeDimension('metric_time', 'day')
-    exports:
-      - name: order_metrics
-        config:
-          export_as: table

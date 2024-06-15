@@ -14,13 +14,14 @@ sources:
     tables:
       - name: raw_customers
         description: Um registro por pessoa que comprou um ou mais itens
-      - name: raw_orders
+      - name: raw_orders_2023
+        description: Um registro por pedido (consistindo em um ou mais itens do pedido)
+      - name: raw_orders_2024
         description: Um registro por pedido (consistindo em um ou mais itens do pedido)
         loaded_at_field: ordered_at
       - name: raw_items
         description: Itens incluídos em um pedido
       - name: raw_stores
-        loaded_at_field: opened_at
         description: Registro de cada loja com a data de abertura
       - name: raw_products
         description: Um registro por SKU para itens vendidos nas lojas
