@@ -1,0 +1,14 @@
+analytics:
+  outputs:
+    dev:
+      type: bigquery
+      method: "{{ env_var('DBT_METHOD') }}"
+      project: "{{ env_var('DBT_PROJECT') }}"
+      dataset: "{{ env_var('DBT_DATASET') }}"
+      keyfile: "{{ env_var('DBT_KEYFILE_PATH') }}"
+      threads: "{{ env_var('DBT_THREADS') | int }}"
+      timeout_seconds: "{{ env_var('DBT_JOB_TIMEOUT') | int }}"
+      location: "{{ env_var('DBT_LOCATION') }}"
+      priority: "{{ env_var('DBT_PRIORITY') }}"
+      retries: "{{ env_var('DBT_JOB_RETRIES') | int }}"
+  target: dev
