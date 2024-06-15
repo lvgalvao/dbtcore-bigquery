@@ -6,13 +6,13 @@
     {% if node.resource_type == 'seed' %}
         {{ custom_schema_name | trim }}
 
-    {# staging models go in the `staging` schema #}
+    {# staging models go in a global `staging` schema #}
     {% elif 'staging' in node.path %}
-        {{ default_schema }}_staging
+        {{ 'staging' }}
 
-    {# marts models go in the `marts` schema #}
+    {# marts models  go in a global `marts` schema #}
     {% elif 'marts' in node.path %}
-        {{ default_schema }}_marts
+        {{ 'marts' }}
 
     {# non-specified schemas go to the default target schema #}
     {% elif custom_schema_name is none %}

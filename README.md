@@ -7,7 +7,7 @@ Objetivos:
 1) Configurar bigquery
 2) Boas práticas com sqlfluff e pre-commit
 3) Ingerindo dados raw com freshness
-4) Staging
+4) Staging com yml único
 5) Revisitando staging para aplicar macros
 - Criando o nosso de conversão de moeda
 6) Revisitando raw para aplicar macro de schema
@@ -972,3 +972,154 @@ Se o resultado da transformação não corresponder ao esperado, o teste falhar�
 ### Conclusão
 
 Os testes unitários no dbt são fundamentais para garantir a qualidade e a precisão das transformações de dados, ajudando a identificar e corrigir problemas antes que eles afetem os dados de produção. Com a estrutura de testes bem definida, é possível validar de forma automatizada e contínua a lógica implementada nos modelos de dados.
+
+## Resumo sobre Snapshots e SCD Type 2 no dbt
+
+#### Introdução
+
+Os snapshots no dbt são usados para capturar e armazenar as mudanças ao longo do tempo em uma tabela de origem, permitindo a implementação do SCD Type 2 (Slowly Changing Dimension Type 2). Este método é útil para manter um histórico das mudanças nos dados, crucial para análises históricas e auditorias.
+
+#### Problema que Resolve
+
+O SCD Type 2 permite:
+- Manter o histórico completo das mudanças nos dados.
+- Identificar quando as mudanças ocorreram.
+- Analisar os dados conforme estavam em diferentes pontos no tempo.
+
+#### Ordem de Execução
+
+1. **Configuração Inicial**:
+   - Criação dos seeds para carregar os dados iniciais.
+   - Configuração dos modelos de staging para transformar e limpar os dados.
+   - Configuração dos snapshots para capturar as mudanças nos dados.
+
+2. **Execução Inicial**:
+   - Carregar os dados iniciais usando seeds.
+   - Executar os snapshots para capturar o estado inicial dos dados.
+
+3. **Modificação dos Dados**:
+   - Modificar os dados na fonte (seeds).
+   - Recarregar os dados modificados.
+   - Executar os snapshots novamente para capturar as mudanças.
+
+#### Passo a Passo
+
+1. **Configuração dos Seeds**:
+
+   Crie um arquivo CSV para os dados iniciais e coloque-o na pasta `seeds`:
+
+   ```csv
+   id,name,opened_at,tax_rate
+   4b6c2304-2b9e-41e4-942a-cf11a1819378,Philadelphia,2016-09-01T00:00:00,0.06
+   40e6ddd6-b8f6-4e17-8bd6-5e53966809d2,Brooklyn,2017-03-12T00:00:00,0.04
+   1ce7ac35-d296-4e34-89c4-bf92aa2fe751,Chicago,2018-04-29T00:00:00,0.0625
+   39b38c24-679d-4217-b676-a4a0e64c8477,San Francisco,2018-05-09T00:00:00,0.075
+   09fdfbaf-3ec6-408d-93f4-1efc535d9938,New Orleans,2019-03-10T00:00:00,0.04
+   da506490-1e2f-4fe8-8426-f1eee65af28a,Los Angeles,2019-09-13T00:00:00,0.08
+   ```
+
+2. **Configuração do Modelo de Staging**:
+
+   Crie um modelo de staging para transformar e limpar os dados:
+
+   ```sql
+   -- models/staging/stg_stores.sql
+
+   with source as (
+       select * from {{ ref('raw_stores') }}
+   ),
+
+   renamed as (
+       select
+           id as location_id,
+           name as location_name,
+           tax_rate,
+           DATE_TRUNC(opened_at, day) as opened_date
+       from source
+   )
+
+   select * from renamed
+   ```
+
+3. **Configuração do Snapshot**:
+
+   Crie um snapshot para capturar as mudanças nos dados:
+
+   ```sql
+   {% snapshot stores_snapshot %}
+       {{
+           config(
+               target_schema='snapshots',
+               unique_key='location_id',
+               strategy='check',
+               check_cols=['location_name', 'tax_rate']
+           )
+       }}
+
+       select
+           location_id,
+           location_name,
+           opened_date,
+           tax_rate
+       from {{ ref('stg_stores') }}
+
+   {% endsnapshot %}
+   ```
+
+4. **Carregar os Dados Iniciais com Seeds**:
+
+   Execute o comando para carregar os dados iniciais:
+
+   ```bash
+   dbt seed
+   ```
+
+5. **Executar o Snapshot Inicial**:
+
+   Execute o comando para capturar o estado inicial dos dados:
+
+   ```bash
+   dbt snapshot
+   ```
+
+6. **Modificação dos Dados**:
+
+   Modifique o CSV para simular uma mudança de dados. Por exemplo, mude "Philadelphia" para "Philly":
+
+   ```csv
+   id,name,opened_at,tax_rate
+   4b6c2304-2b9e-41e4-942a-cf11a1819378,Philly,2016-09-01T00:00:00,0.06
+   40e6ddd6-b8f6-4e17-8bd6-5e53966809d2,Brooklyn,2017-03-12T00:00:00,0.04
+   1ce7ac35-d296-4e34-89c4-bf92aa2fe751,Chicago,2018-04-29T00:00:00,0.0625
+   39b38c24-679d-4217-b676-a4a0e64c8477,San Francisco,2018-05-09T00:00:00,0.075
+   09fdfbaf-3ec6-408d-93f4-1efc535d9938,New Orleans,2019-03-10T00:00:00,0.04
+   da506490-1e2f-4fe8-8426-f1eee65af28a,Los Angeles,2019-09-13T00:00:00,0.08
+   ```
+
+7. **Recarregar os Dados Modificados com Seeds**:
+
+   Execute o comando para carregar os dados modificados:
+
+   ```bash
+   dbt seed
+   ```
+
+8. **Executar o Snapshot Novamente**:
+
+   Execute o comando para capturar as mudanças nos dados:
+
+   ```bash
+   dbt snapshot
+   ```
+
+9. **Verificar a Tabela de Snapshots**:
+
+   Verifique a tabela de snapshots para garantir que os dados foram capturados corretamente:
+
+   ```sql
+   SELECT * FROM snapshots.stores_snapshot;
+   ```
+
+### Conclusão
+
+Seguindo esses passos, você será capaz de implementar a captura de mudanças de dados do tipo 2 (SCD Type 2) usando snapshots no dbt. Isso permitirá que você mantenha um histórico completo das mudanças nos seus dados, essencial para análises históricas e auditorias.

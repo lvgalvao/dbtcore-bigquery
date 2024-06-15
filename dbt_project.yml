@@ -34,14 +34,15 @@ vars:
 # files using the `{{ config(...) }}` macro.
 
 seeds:
-  analytics:
-    +schema: raw
+  +schema: raw
+
+snapshots:
+  +schema: snapshots
 
 models:
-  analytics:
-    staging:
-      +schema: staging  # Define o esquema para modelos de staging
-      +materialized: view
-    marts:
-      +schema: marts  # Define o esquema para modelos de marts
-      +materialized: table
+  staging:
+    +schema: staging  # Define o esquema para modelos de staging
+    +materialized: view
+  marts:
+    +schema: marts  # Define o esquema para modelos de marts
+    +materialized: table
