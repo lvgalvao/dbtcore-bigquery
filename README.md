@@ -2,6 +2,19 @@
 
 ## Quickstart com dbt Core e BigQuery
 
+### Resumo dos Passos
+
+1. **Crie o Projeto no GCP.**
+2. **Habilite a API do BigQuery no Google Cloud.**
+3. **Configure o BigQuery no GCP.**
+4. **Instale e Configure o dbt Core.**
+5. **Crie e Configure uma Conta de Serviço no Google Cloud.**
+6. **Configure o Perfil do dbt com a Conta de Serviço.**
+7. **Defina as Variáveis de Ambiente no Arquivo `.env`.**
+8. **Carregue as Variáveis de Ambiente e Execute os Comandos dbt.**
+
+Com esses passos, você terá configurado com sucesso uma conta de serviço no Google Cloud Platform para uso com dbt Core e BigQuery.
+
 ### Criação do Projeto no GCP:
 
 1. **Acesse o console do Google Cloud Platform**
@@ -147,3 +160,13 @@ analytics:
 ```
 
 Seguindo esses passos, você terá configurado com sucesso uma conta de serviço no Google Cloud Platform para uso com dbt Core e BigQuery.
+
+### Verificando a Configuração
+
+Para garantir que tudo está configurado corretamente, execute o comando `dbt debug` no seu prompt de comando:
+
+```sh
+dbt debug
+```
+
+Se tudo estiver configurado corretamente, você verá uma mensagem indicando que a conexão com o BigQuery foi bem-sucedida.
