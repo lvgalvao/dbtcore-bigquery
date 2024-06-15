@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "dbtcore-bigquery"
+version = "0.1.0"
+description = "projeto dbtcore e bigquery do workshop"
+authors = ["lvgalvaofilho <lvgalvaofilho@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "3.12.1"
+dbt-core = "^1.8.2"
+dbt-bigquery = "^1.8.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
